@@ -1,69 +1,70 @@
 const mineflayer = require('mineflayer');
 
-// Configuration - Change these to match your server
+// Configuration Settings
 const config = {
-    host: 'localhost',       // Server IP
+    host: '192.168.0.89',       // Server IP
     port: 25565,             // Server Port
-    username: 'LightBot',    // Bot's username
-    version: '1.20.1',       // Set specific version to skip auto-ordering/ping overhead
-    auth: 'offline'          // 'offline' for cracked/local, 'microsoft' for premium
+    version: '1.20.1',       // Lock version to skip ping overhead
+    auth: 'offline'          // 'offline' for local/cracked, 'microsoft' for premium
 };
 
 let bot;
 
 function createBot() {
-    console.log(`[🤖] Connecting to ${config.host}:${config.port}...`);
+    // Generate a fresh random 4-digit ID every time the bot connects/reconnects
+    const randomId = Math.floor(1000 + Math.random() * 9000);
+    const botName = `Bot_${randomId}`;
+
+    console.log(`[🤖] Connecting ${botName} to ${config.host}:${config.port}...`);
     
     bot = mineflayer.createBot({
         host: config.host,
         port: config.port,
-        username: config.username,
+        username: botName,
         version: config.version,
         auth: config.auth,
         
         // Performance optimizations:
-        viewDistance: 'tiny',       // Reduces chunk data the bot tries to load/track
-        physicsEnabled: true        // Set to false if the bot never needs to move (massive CPU savings)
+        viewDistance: 'tiny'        // Drastically reduces memory and network usage
     });
 
-    // Event: Bot successfully spawns into the world
+    // Event: Successfully joined the server
     bot.once('spawn', () => {
-        console.log(`[✅] ${bot.username} has joined the server.`);
+        console.log(`[✅] ${bot.username} has successfully joined the world.`);
         
-        // Disable heavy features if not needed (e.g., tracking entities slows down performance)
-        // bot.spyMode = false; 
+        // Disable physics engine calculation (Massive CPU savings, near 0% usage)
+        bot.physicsEnabled = false; 
     });
 
-    // Event: Listening to chat
+    // Event: Simple chat handler
     bot.on('chat', (username, message) => {
-        // Prevent the bot from responding to itself
-        if (username === bot.username) return;
+        if (username === bot.username) return; // Ignore itself
 
-        // Example trigger command
         if (message === '!ping') {
-            bot.chat(`Pong! I am running on a lightweight Node.js core.`);
+            bot.chat(`Pong! I am a ultra-lightweight Node.js bot.`);
         }
     });
 
-    // Event: Kicked or disconnected
+    // Event: Handles getting kicked from the server
     bot.on('kick', (reason) => {
         console.log(`[❌] Kicked from server. Reason: ${reason}`);
     });
 
+    // Event: Disconnect handling (trigged on kick or server shutdown)
     bot.on('end', () => {
-        console.log('[⚠️] Disconnected. Reconnecting in 5 seconds...');
-        setTimeout(createBot, 5000); // Auto-reconnect loop
+        console.log('[⚠️] Connection lost. Generating a new name and reconnecting in 5 seconds...');
+        setTimeout(createBot, 5000); 
     });
 
-    // Event: Error handling to prevent the script from crashing
+    // Event: Error handling to prevent the entire script from crashing
     bot.on('error', (err) => {
         if (err.code === 'ECONNREFUSED') {
-            console.log(`[❌] Connection refused to ${err.address}:${err.port}`);
+            console.log(`[❌] Target server is offline or connection was refused.`);
         } else {
-            console.error('[💥] Error encountered:', err);
+            console.error('[💥] Network Error:', err.message);
         }
     });
 }
 
-// Start the bot
+// Start the initial connection cycle
 createBot();
